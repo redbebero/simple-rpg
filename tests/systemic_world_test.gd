@@ -44,6 +44,8 @@ func _run() -> void:
 	assert(shadow.perceived_danger > 0.0)
 	var before: float = prototype.fire.intensity
 	context.set_weather("rain", 1.0)
+	assert("rain" in context.events.recent)
+	assert(context.state.temperature < 26.0)
 	prototype._process(1.0)
 	assert(prototype.fire.intensity < before)
 	print("systemic_world_test: PASS")

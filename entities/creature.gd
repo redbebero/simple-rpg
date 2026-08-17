@@ -67,9 +67,16 @@ func tick(delta: float) -> void:
 	var night := 1.0 if context.state.period() == "night" else 0.0
 	var danger := perceived_danger
 	decision = UtilityAI.choose({"hunger": 0.4 if creature_kind == "herbivore" else 0.0, "danger": danger, "fear": fear, "aggression": aggression, "prey": 1.0 if memory.has("herbivore") else 0.0, "rain": context.state.rain_intensity, "night": night, "shelter": 0.6, "light": light, "light_aversion": light_aversion, "heard": heard})
+	if creature_kind == "shadow" and context.state.period() != "night" and perceived_danger <= 0.0: decision = "SeekShelter"
 	if creature_kind == "shadow":
 		var shelter_target := 740.0 if context.state.period() != "night" else 620.0
 		position.x = move_toward(position.x, shelter_target, speed * delta)
+	if creature_kind == "villager" and decision == "SeekShelter":
+		position.x = move_toward(position.x, 150.0, speed * delta)
+	if creature_kind == "herbivore" and decision == "Feed":
+		position.x = move_toward(position.x, 320.0, speed * delta)
+	if creature_kind == "predator" and decision == "Hunt" and memory.has("herbivore"):
+		position.x = move_toward(position.x, memory["herbivore"].x, speed * delta)
 	if decision == "AvoidLight" or decision == "Flee":
 		position.x = move_toward(position.x, position.x - 45.0, speed * delta)
 		context.events.creature_fled.emit(self, decision)

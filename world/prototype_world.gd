@@ -3,7 +3,7 @@ extends Node2D
 
 const CreatureScript = preload("res://entities/creature.gd")
 const ObjectScript = preload("res://entities/world_object.gd")
-const PerceptionScript = preload("res://ai/perception_system.gd")
+const NpcScript = preload("res://entities/npc.gd")
 var context: WorldContext
 var perception: PerceptionSystem
 var creatures: Array[WorldCreature] = []
@@ -13,7 +13,7 @@ var fire_cooldown := 0.0
 var rain_timer := 0.0
 
 func _ready() -> void:
-	perception = PerceptionScript.new()
+	perception = context.perception
 	_spawn_creature("herbivore", Vector2(270, 250), ["ANIMAL", "ORGANIC"])
 	_spawn_creature("herbivore", Vector2(340, 250), ["ANIMAL", "ORGANIC"])
 	_spawn_creature("predator", Vector2(500, 250), ["PREDATOR", "ANIMAL"])
@@ -67,7 +67,7 @@ func _apply_interactions() -> void:
 			elif creature.creature_kind != "villager": creature.perceived_danger = 0.7
 
 func _spawn_creature(kind: String, at: Vector2, tags: Array[String]) -> WorldCreature:
-	var creature := CreatureScript.new()
+	var creature: WorldCreature = NpcScript.new() if kind == "villager" else CreatureScript.new()
 	creature.position = at
 	var definition := load("res://data/creatures/%s.tres" % kind) as CreatureDefinition
 	var configured_tags: Array[String] = definition.tags if definition != null else tags
@@ -85,7 +85,9 @@ func _spawn_creature(kind: String, at: Vector2, tags: Array[String]) -> WorldCre
 func _spawn_object(at: Vector2, tags: Array[String]) -> WorldObject:
 	var object := ObjectScript.new()
 	object.position = at
-	object.tags = tags
+	var definition_id := "fire" if "FIRE" in tags else "plant" if "PLANT" in tags else ""
+	var definition := load("res://data/objects/%s.tres" % definition_id) as ObjectDefinition if definition_id != "" else null
+	object.setup(definition, tags)
 	add_child(object)
 	objects.append(object)
 	return object

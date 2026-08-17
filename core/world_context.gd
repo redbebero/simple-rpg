@@ -9,6 +9,7 @@ const TimeSystemScript = preload("res://world/time_system.gd")
 const WeatherSystemScript = preload("res://world/weather_system.gd")
 const EcologySystemScript = preload("res://world/ecology_system.gd")
 const SimulationLODScript = preload("res://world/simulation_lod.gd")
+const PerceptionSystemScript = preload("res://ai/perception_system.gd")
 
 var state: WorldState
 var events: WorldEvents
@@ -17,6 +18,7 @@ var time_system: TimeSystem
 var weather_system: WeatherSystem
 var ecology: EcologySystem
 var simulation_lod: SimulationLOD
+var perception: PerceptionSystem
 var fixed_tick := 0.25
 var tick_accumulator := 0.0
 var debug_visible := false
@@ -29,6 +31,7 @@ func _ready() -> void:
 	weather_system = WeatherSystemScript.new()
 	ecology = EcologySystemScript.new()
 	simulation_lod = SimulationLODScript.new()
+	perception = PerceptionSystemScript.new()
 	var prototype := PrototypeWorldScript.new()
 	prototype.context = self
 	prototype.name = "PrototypeWorld"

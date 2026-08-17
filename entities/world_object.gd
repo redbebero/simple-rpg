@@ -7,6 +7,9 @@ var intensity := 0.0
 var tag_component: TagComponent
 var reaction_component: ReactionComponent
 
+func setup(definition: ObjectDefinition, fallback_tags: Array[String]) -> void:
+	tags = definition.tags if definition != null else fallback_tags
+
 func _ready() -> void:
 	tag_component = TagComponent.new()
 	tag_component.tags = tags

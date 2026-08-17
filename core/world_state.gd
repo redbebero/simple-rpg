@@ -9,7 +9,17 @@ var rain_intensity := 0.0
 var temperature := 18.0
 var light_level := 1.0
 var region := "forest"
+var region_values: Dictionary = {"wind": 0.15, "magic": 0.0}
 var environment: Dictionary = {"wind": 0.15, "magic": 0.0}
+
+func period() -> String:
+	if time_of_day >= 6.0 and time_of_day < 18.0: return "day"
+	if time_of_day >= 18.0 and time_of_day < 21.0: return "evening"
+	return "night"
+
+func set_time(hours: float) -> void:
+	time_of_day = fmod(hours + 24.0, 24.0)
+	_recalculate()
 
 func set_weather(next_weather: String, intensity := 0.0) -> void:
 	weather = next_weather

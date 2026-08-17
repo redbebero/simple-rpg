@@ -4,6 +4,15 @@ extends Node2D
 @export var tags: Array[String] = []
 var burning := false
 var intensity := 0.0
+var tag_component: TagComponent
+var reaction_component: ReactionComponent
+
+func _ready() -> void:
+	tag_component = TagComponent.new()
+	tag_component.tags = tags
+	add_child(tag_component)
+	reaction_component = ReactionComponent.new()
+	add_child(reaction_component)
 
 func has_tag(tag: String) -> bool: return tag in tags
 
@@ -14,6 +23,7 @@ func burn() -> void:
 
 func _process(delta: float) -> void:
 	if burning: intensity = maxf(0.0, intensity - delta * 0.03)
+	if reaction_component != null: reaction_component.tick(delta)
 	queue_redraw()
 
 func _draw() -> void:

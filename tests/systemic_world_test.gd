@@ -12,15 +12,30 @@ func _run() -> void:
 	state.time_of_day = 0.0
 	state._recalculate()
 	assert(state.light_level < 0.2)
+	assert(state.period() == "night")
+	state.set_time(12.0)
+	assert(state.period() == "day")
+	assert(state.light_level > 0.9)
 	var resolver: InteractionResolver = ResolverScript.new()
 	assert("BURN" in resolver.resolve(["FIRE"], ["FLAMMABLE"]))
 	assert("WEAKEN_FIRE" in resolver.resolve(["RAIN"], ["FIRE"]))
+	assert("FLEE_LIGHT" in resolver.resolve(["LIGHT"], ["SHADOW_SENSITIVE"]))
+	assert("SEEK_SHELTER" in resolver.resolve(["COLD"], ["HEAT_SENSITIVE"]))
+	assert("AMPLIFY" in resolver.resolve(["MAGIC"], ["MAGIC_CONDUCTOR"]))
 	var context: WorldContext = ContextScript.new()
 	root.add_child(context)
 	await process_frame
 	var prototype = context.get_node("PrototypeWorld")
+	context.state.set_time(0.0)
+	var shadow = prototype.creatures[3]
+	var shadow_start_x: float = shadow.position.x
+	prototype._process(1.0)
+	assert(shadow.position.x < shadow_start_x)
+	var predator = prototype.creatures[2]
+	assert(predator.memory.has("herbivore"))
 	prototype.try_create_fire()
 	assert(prototype.fire != null)
+	assert("fire started" in context.events.recent)
 	prototype._apply_interactions()
 	assert(prototype.objects[0].burning)
 	var before: float = prototype.fire.intensity

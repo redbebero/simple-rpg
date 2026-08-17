@@ -4,12 +4,9 @@ extends RefCounted
 var rules: Array[InteractionRule] = []
 
 func _init() -> void:
-	for pair in [["FIRE", "FLAMMABLE", "BURN"], ["WATER", "FIRE", "WEAKEN_FIRE"], ["LIGHT", "SHADOW_SENSITIVE", "FLEE_LIGHT"], ["RAIN", "FIRE", "WEAKEN_FIRE"], ["COLD", "HEAT_SENSITIVE", "SEEK_SHELTER"], ["MAGIC", "MAGIC_CONDUCTOR", "AMPLIFY"]]:
-		var rule := InteractionRule.new()
-		rule.source_tag = pair[0]
-		rule.target_tag = pair[1]
-		rule.effect = pair[2]
-		rules.append(rule)
+	for path in ["res://data/interactions/fire_burn.tres", "res://data/interactions/water_fire.tres", "res://data/interactions/light_shadow.tres", "res://data/interactions/rain_fire.tres", "res://data/interactions/cold_heat.tres", "res://data/interactions/magic_conductor.tres"]:
+		var rule := load(path) as InteractionRule
+		if rule != null: rules.append(rule)
 
 func resolve(source: Array, target: Array, intensity := 1.0) -> Array:
 	var effects: Array = []

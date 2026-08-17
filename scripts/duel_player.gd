@@ -25,6 +25,13 @@ var pending_action := ""
 var action_buffer_time := 0.0
 var coyote_time := 0.0
 var attack_data: AttackData
+var world_tags: TagComponent
+var world_health: HealthComponent
+var world_movement: MovementComponent
+var world_perception: PerceptionComponent
+var world_reaction: ReactionComponent
+var world_needs: NeedsComponent
+var world_memory: MemoryComponent
 
 const ACTION_BUFFER_WINDOW := 0.12
 const COYOTE_WINDOW := 0.10
@@ -35,6 +42,22 @@ func _ready() -> void:
 	attack_data = AttackData.new()
 	attack_data.id = "slash"
 	attack_data.visual_kind = "slash"
+	world_tags = TagComponent.new()
+	world_tags.tags = ["PLAYER", "ORGANIC", "SOLID"]
+	add_child(world_tags)
+	world_health = HealthComponent.new()
+	world_health.maximum = 3.0
+	add_child(world_health)
+	world_movement = MovementComponent.new()
+	add_child(world_movement)
+	world_perception = PerceptionComponent.new()
+	add_child(world_perception)
+	world_reaction = ReactionComponent.new()
+	add_child(world_reaction)
+	world_needs = NeedsComponent.new()
+	add_child(world_needs)
+	world_memory = MemoryComponent.new()
+	add_child(world_memory)
 
 
 func _physics_process(delta: float) -> void:

@@ -21,17 +21,23 @@ func _ready() -> void:
 	_spawn_creature("villager", Vector2(130, 250), ["NPC", "ORGANIC"])
 	_spawn_object(Vector2(410, 280), ["PLANT", "FLAMMABLE", "ORGANIC"])
 	_spawn_object(Vector2(450, 280), ["PLANT", "FLAMMABLE", "ORGANIC"])
+	_spawn_object(Vector2(620, 280), ["WATER", "SOLID"])
 	_spawn_object(Vector2(740, 275), ["CAVE", "DARK"])
 	queue_redraw()
 
 func _process(delta: float) -> void:
+	if context != null and not context.simulation_lod.tick(delta): return
 	fire_cooldown = maxf(0.0, fire_cooldown - delta)
 	rain_timer += delta
 	if rain_timer > 18.0 and context.state.weather == "clear": context.set_weather("rain", 0.85)
 	if rain_timer > 28.0 and context.state.weather == "rain": context.set_weather("clear", 0.0)
+	perception.observe(creatures)
+	context.ecology.tick(creatures, context.state, delta)
 	for creature in creatures: creature.tick(delta)
 	if fire != null and context.state.weather == "rain":
-		fire.intensity = maxf(0.0, fire.intensity - delta * context.state.rain_intensity * 0.12)
+		var rain_effects: Array = context.resolver.resolve(["RAIN"], fire.tags, context.state.rain_intensity)
+		if "WEAKEN_FIRE" in rain_effects:
+			fire.intensity = maxf(0.0, fire.intensity - delta * context.state.rain_intensity * 0.12)
 		if fire.intensity <= 0.0: context.events.fire_weakened.emit(fire.global_position, 1.0)
 	_apply_interactions()
 	queue_redraw()
@@ -44,6 +50,7 @@ func try_create_fire() -> void:
 	context.events.record("fire started")
 	context.events.fire_started.emit(fire.global_position)
 	perception.emit_sound(context.events, fire.global_position, 1.0, "fire")
+	perception.emit_visible(context.events, fire.global_position, 1.0, "fire")
 
 func _apply_interactions() -> void:
 	if fire == null or fire.intensity <= 0.0: return
@@ -61,9 +68,15 @@ func _apply_interactions() -> void:
 func _spawn_creature(kind: String, at: Vector2, tags: Array[String]) -> WorldCreature:
 	var creature := CreatureScript.new()
 	creature.position = at
-	creature.setup(context, kind, tags)
-	if kind == "shadow": creature.light_aversion = 2.5; creature.speed = 34.0
-	if kind == "predator": creature.aggression = 1.0; creature.fear = 0.35; creature.speed = 30.0
+	var definition := load("res://data/creatures/%s.tres" % kind) as CreatureDefinition
+	var configured_tags: Array[String] = definition.tags if definition != null else tags
+	creature.setup(context, kind, configured_tags)
+	if definition != null:
+		creature.aggression = definition.aggression
+		creature.fear = definition.fear
+		creature.speed = definition.movement_speed
+		creature.light_aversion = 1.0 - definition.preferred_light
+		creature.movement_component.speed = creature.speed
 	add_child(creature)
 	creatures.append(creature)
 	return creature
@@ -75,6 +88,12 @@ func _spawn_object(at: Vector2, tags: Array[String]) -> WorldObject:
 	add_child(object)
 	objects.append(object)
 	return object
+
+func debug_decisions() -> String:
+	var result: Array[String] = []
+	for creature in creatures:
+		result.append("%s:%s" % [creature.creature_kind, creature.decision])
+	return " ".join(result)
 
 func _draw() -> void:
 	var light := context.state.light_level if context != null else 1.0

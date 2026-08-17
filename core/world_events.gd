@@ -11,6 +11,7 @@ signal entity_damaged(target: Node, amount: float)
 signal creature_fled(creature: Node, reason: String)
 signal creature_died(creature: Node)
 signal interaction_resolved(effect: String, position: Vector2)
+signal world_state_changed(period: String, light_level: float, weather: String)
 
 var recent: Array[String] = []
 
@@ -18,3 +19,6 @@ func record(name: String) -> void:
 	recent.push_front(name)
 	if recent.size() > 8:
 		recent.pop_back()
+
+func emit_state(state: WorldState) -> void:
+	world_state_changed.emit(state.period(), state.light_level, state.weather)

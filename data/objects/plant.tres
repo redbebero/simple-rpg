@@ -1,0 +1,7 @@
+[gd_resource type="Resource" script_class="ObjectDefinition" load_steps=2 format=3]
+[ext_resource type="Script" path="res://data/object_definition.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "plant"
+tags = ["PLANT", "FLAMMABLE", "ORGANIC"]
+durability = 1.0

@@ -38,6 +38,10 @@ func _run() -> void:
 	assert("fire started" in context.events.recent)
 	prototype._apply_interactions()
 	assert(prototype.objects[0].burning)
+	prototype._process(1.0)
+	prototype._process(1.0)
+	assert(prototype.creatures[0].decision == "Flee")
+	assert(shadow.perceived_danger > 0.0)
 	var before: float = prototype.fire.intensity
 	context.set_weather("rain", 1.0)
 	prototype._process(1.0)

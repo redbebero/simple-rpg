@@ -50,7 +50,7 @@ func try_create_fire() -> void:
 	context.events.record("fire started")
 	context.events.fire_started.emit(fire.global_position)
 	perception.emit_sound(context.events, fire.global_position, 1.0, "fire")
-	perception.emit_visible(context.events, fire.global_position, 1.0, "fire")
+	perception.emit_visible(context.events, fire.global_position, 1.5, "fire")
 
 func _apply_interactions() -> void:
 	if fire == null or fire.intensity <= 0.0: return
@@ -61,8 +61,9 @@ func _apply_interactions() -> void:
 				object.burn()
 				context.events.interaction_resolved.emit("BURN", object.global_position)
 	for creature in creatures:
-		if creature.global_position.distance_to(fire.global_position) < 180.0:
-			if creature.creature_kind == "shadow": creature.perceived_danger = 1.0
+		if creature.global_position.distance_to(fire.global_position) < 360.0:
+			var light_effects: Array = context.resolver.resolve(["LIGHT"], creature.tags, fire.intensity)
+			if "FLEE_LIGHT" in light_effects: creature.perceived_danger = 1.0
 			elif creature.creature_kind != "villager": creature.perceived_danger = 0.7
 
 func _spawn_creature(kind: String, at: Vector2, tags: Array[String]) -> WorldCreature:

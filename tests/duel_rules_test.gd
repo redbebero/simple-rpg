@@ -1,0 +1,33 @@
+extends SceneTree
+
+const DuelRules = preload("res://scripts/duel_rules.gd")
+
+
+func _init() -> void:
+	assert(DuelRules.enemy_intent(300.0, "none", 0) == "lunge")
+	assert(DuelRules.enemy_intent(70.0, "parry", 1) == "strike")
+	assert(DuelRules.enemy_intent(70.0, "evade", 2) == "sweep")
+	assert(DuelRules.enemy_intent(70.0, "parry", 3, 2, 0, 0) == "feint")
+	assert(DuelRules.enemy_intent(70.0, "evade", 4, 0, 2, 0) == "delayed_sweep")
+	assert(DuelRules.enemy_intent(70.0, "attack", 5, 0, 0, 2) == "strike")
+	assert(DuelRules.resolve("parry", "strike") == "parry")
+	assert(DuelRules.resolve("parry", "lunge") == "parry")
+	assert(DuelRules.resolve("parry", "sweep") == "parry")
+	assert(DuelRules.resolve("evade", "lunge") == "evade")
+	assert(DuelRules.resolve("attack", "recover") == "punish")
+	assert(DuelRules.resolve("attack", "strike") == "attack")
+	assert(DuelRules.resolve("attack", "lunge") == "attack")
+	assert(DuelRules.resolve("attack", "guard") == "attack")
+	assert(DuelRules.resolve("jump", "sweep") == "evade")
+	assert(DuelRules.resolve("jump", "strike") == "hit")
+	assert(DuelRules.attack_hits(80.0, 1.0, 1.0))
+	assert(not DuelRules.attack_hits(140.0, 1.0, 1.0))
+	assert(not DuelRules.attack_hits(80.0, 1.0, -1.0))
+	assert(DuelRules.enemy_reach("lunge") == 210.0)
+	assert(DuelRules.enemy_reach("strike") == 105.0)
+	assert(DuelRules.is_weak_point("stagger"))
+	assert(not DuelRules.is_weak_point("recover"))
+	assert(DuelRules.route_enemy_hp(true) == 3)
+	assert(DuelRules.route_enemy_hp(false) == 4)
+	print("duel_rules_test: passed")
+	quit()

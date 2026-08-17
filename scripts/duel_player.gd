@@ -1,6 +1,7 @@
 extends CharacterBody2D
 
 const ROOM_RIGHT := 3100.0
+const AttackData = preload("res://scripts/attack_data.gd")
 
 const ACTION_TIMES := {
 	"attack": Vector3(0.08, 0.09, 0.16),
@@ -20,22 +21,38 @@ var jump_height := 0.0
 var jump_velocity := 0.0
 var jump_cut_applied := false
 var ground_y := 0.0
+var pending_action := ""
+var action_buffer_time := 0.0
+var coyote_time := 0.0
+var attack_data: AttackData
+
+const ACTION_BUFFER_WINDOW := 0.12
+const COYOTE_WINDOW := 0.10
 
 
 func _ready() -> void:
 	ground_y = position.y
+	attack_data = AttackData.new()
+	attack_data.id = "slash"
+	attack_data.visual_kind = "slash"
 
 
 func _physics_process(delta: float) -> void:
 	var axis := Input.get_axis("move_left", "move_right")
-	velocity.x = move_toward(velocity.x, axis * 260.0, 1800.0 * delta)
+	var movement_scale := 1.0
+	if action_phase == "active" and action == "attack":
+		movement_scale = 0.45
+	elif action_phase == "recovery":
+		movement_scale = 0.75
+	velocity.x = move_toward(velocity.x, axis * 260.0 * movement_scale, 1800.0 * delta)
 	if axis != 0.0:
 		facing = sign(axis)
 	step_time = maxf(0.0, step_time - delta)
+	advance_action(delta)
 	if step_time > 0.0:
 		velocity.x = facing * 520.0
-	advance_action(delta)
 	if jump_height > 0.0 or jump_velocity > 0.0:
+		coyote_time = 0.0
 		if jump_velocity > 0.0 and not Input.is_action_pressed("jump"):
 			cut_jump()
 		jump_velocity -= 900.0 * delta
@@ -43,18 +60,46 @@ func _physics_process(delta: float) -> void:
 		position.y = ground_y - jump_height
 		if jump_height == 0.0:
 			jump_velocity = 0.0
+	else:
+		coyote_time = minf(COYOTE_WINDOW, coyote_time + delta)
 	move_and_slide()
 	global_position.x = clamp(global_position.x, 180.0, ROOM_RIGHT)
 	hurt_time = maxf(0.0, hurt_time - delta)
+	_consume_buffered_action(delta)
 	if Input.is_action_just_pressed("action"):
-		begin_action("attack")
+		queue_action("attack")
 	elif Input.is_action_just_pressed("evade"):
-		begin_action("evade")
+		queue_action("evade")
 	elif Input.is_action_just_pressed("parry"):
-		begin_action("parry")
+		queue_action("parry")
 	elif Input.is_action_just_pressed("jump"):
-		begin_action("jump")
+		queue_action("jump")
 	_update_visual()
+
+
+func queue_action(kind: String) -> bool:
+	if not ACTION_TIMES.has(kind):
+		return false
+	pending_action = kind
+	action_buffer_time = ACTION_BUFFER_WINDOW
+	return true
+
+
+func _consume_buffered_action(delta: float) -> void:
+	if pending_action == "":
+		return
+	action_buffer_time -= delta
+	if action_buffer_time <= 0.0:
+		pending_action = ""
+		return
+	if action != "" and action_phase != "ready":
+		return
+	if pending_action == "jump" and jump_height > 0.0:
+		return
+	var next_action := pending_action
+	if begin_action(next_action):
+		pending_action = ""
+		action_buffer_time = 0.0
 
 
 func begin_action(kind: String) -> bool:
@@ -119,8 +164,8 @@ func action_progress() -> float:
 	return clampf(action_time / maxf(duration, 0.001), 0.0, 1.0)
 
 
-func take_hit() -> void:
-	hp -= 1
+func take_hit(damage: int = 1) -> void:
+	hp -= damage
 	hurt_time = 0.18
 
 
@@ -129,6 +174,12 @@ func clear_action() -> void:
 	action_phase = "ready"
 	action_time = 0.0
 	step_time = 0.0
+	pending_action = ""
+	action_buffer_time = 0.0
+
+
+func get_attack_data() -> AttackData:
+	return attack_data
 
 
 func get_facing() -> float:
@@ -136,8 +187,6 @@ func get_facing() -> float:
 
 
 func can_be_hit(enemy_intent: String) -> bool:
-	if enemy_intent in ["sweep", "delayed_sweep", "ground_wave"] and jump_height > 0.0:
-		return false
 	return hurt_time <= 0.0 and step_time <= 0.0 and not (action == "parry" and action_phase == "active")
 
 

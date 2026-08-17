@@ -1,6 +1,7 @@
 extends CharacterBody2D
 
 const ROOM_RIGHT := 3100.0
+const AttackData = preload("res://scripts/attack_data.gd")
 
 var hp := 3
 var intent := "strike"
@@ -10,10 +11,12 @@ var motion_time := 0.0
 var ground_y := 430.0
 var vertical_velocity := 0.0
 var knockback_velocity := 0.0
+var attack_data: AttackData
 
 
 func set_intent(next_intent: String) -> void:
 	intent = next_intent
+	attack_data = AttackData.for_kind(intent)
 	state = "telegraph"
 	motion_time = 0.0
 	_refresh_color()
@@ -27,15 +30,21 @@ func set_state(next_state: String) -> void:
 	_refresh_color()
 
 
-func take_hit() -> void:
-	hp -= 1
-	knockback_velocity = -motion_facing * 220.0
+func take_hit(damage: int = 1, knockback: float = 220.0) -> void:
+	hp -= damage
+	knockback_velocity = -motion_facing * knockback
 	motion_time = 0.0
 
 
 func reset(new_hp: int) -> void:
 	hp = new_hp
 	set_state("idle")
+
+
+func get_attack_data() -> AttackData:
+	if attack_data == null:
+		attack_data = AttackData.for_kind(intent)
+	return attack_data
 
 
 func advance_motion(target_x: float, delta: float) -> void:
@@ -100,4 +109,4 @@ func _draw() -> void:
 
 
 func get_facing() -> float:
-	return -1.0
+	return motion_facing

@@ -1,75 +1,104 @@
-# Large Scrolling Dungeon and Class Combat Plan
+# Systemic 2D Action RPG Plan
 
-**Goal:** Turn the current vertical prototype into one large, dark fantasy side-view dungeon with smooth scrolling, readable layered atmosphere, and clearly different Archer/Mage attacks while preserving the Knight flow.
+## Goal
 
-**Architecture:** Reuse the existing `RoomController`, `RoomPiece`, `FantasyBackground`, `CombatRules`, `CombatComponent`, and `ProceduralRig2D`. Add only one reusable projectile scene/script and keep attack differences in the existing class Resource data. Use Godot-native `Camera2D` smoothing and draw-based visuals; no external assets or new dependency.
+Evolve the existing `simple-rpg` duel into a spatial, data-driven 2D side-view action RPG without replacing the working project. The first shipped milestone proves responsive movement, spatial attacks, defensive freedom, modular attack timing, and procedural geometric feedback in the existing arena.
 
-**Success criteria:** The player can cross a large map without camera snapping, see depth through parallax-like layers and torches, fire distinct Archer/Mage projectiles with charge/hold behavior, and fight an enemy/boss whose connected geometric parts animate together and visibly telegraph large attacks.
+## Current baseline
 
-## Constraints
+- `scenes/game.tscn` composes the active encounter, HUD, camera, player, and enemy.
+- `scripts/duel_controller.gd` currently owns encounter phases, HUD, environment drawing, lights, impact drawing, and most combat resolution.
+- `scripts/duel_player.gd` owns movement, custom jump height, action timing, health, and player drawing.
+- `scripts/duel_enemy.gd` owns intent state, approach/commit/recovery motion, knockback, and telegraphs.
+- `scripts/duel_rules.gd` chooses symbolic intents and resolves action outcomes.
+- `scripts/procedural_rig_2d.gd` supplies the minimal square silhouette and is safe to extend with motion parameters.
+- Existing Godot tests cover timing, camera, rules, scene behavior, enemy motion, and geometric rendering.
 
-- Keyboard only; no mouse input.
-- Keep the current Knight controls and guard/counter behavior.
-- Keep Compatibility renderer and procedural geometry.
-- No networking, inventory expansion, skill tree, or art pipeline in this slice.
-- Prefer existing files and Godot-native nodes over new abstractions.
-- Every non-trivial new rule gets one focused Godot test.
+## First vertical-slice milestone
 
-## Implementation Order
+Keep the current controls and duel encounter, then make the following concrete behaviors true:
 
-### 1. Large map and camera
+1. A/D movement uses acceleration/deceleration and retains air control.
+2. Jump supports coyote time and a short jump buffer.
+3. J attack supports a short input buffer and a reusable `AttackData` phase model.
+4. Player and enemy attacks use actual physics shape queries against actor collision shapes, not only `distance <= reach` or symbolic evade results.
+5. Attack phases remain `startup → active → recovery`; startup permits movement, active commits movement, recovery restores movement.
+6. K dodge remains directional and grants a short invulnerability window.
+7. L parry remains optional and high-risk/high-reward; walking away, jumping, and dodging remain valid solutions.
+8. Attack visuals derive from the same attack data: line/arc telegraphs, directional commitment, impact flash, hit stop, and a small camera impulse.
+9. `DuelRules` is narrowed to intent selection and compatibility helpers; it no longer decides whether a spatial attack hits.
 
-**Files:** `scenes/game.tscn`, `scripts/fantasy_background.gd`, `scripts/room_piece.gd`, new `scripts/dungeon_map.gd` only if scene data cannot stay simple.
+## Target boundaries
 
-- Expand the playable floor and walls from a room-sized rectangle to a long dungeon route.
-- Keep collision geometry reusable through `RoomPiece` instances.
-- Configure `Camera2D` limits to the map bounds.
-- Enable position smoothing and use a small dead zone so the camera does not stick to the player.
-- Make catch-up responsive when the player is far from the camera and gentle near the target using native smoothing plus a small camera script adjustment only if native behavior cannot express it.
-- Draw three dark layers: distant architecture, midground pillars/arches, and foreground silhouettes.
-- Add repeated torches as lightweight `Node2D` drawing elements with glow, flame pulse, and limited count.
+```text
+DuelController
+  encounter phase / enemy AI choice / HUD / arena feedback
 
-### 2. Projectile combat
+DuelPlayer + DuelEnemy
+  movement / action state / health / actor collision / actor-specific intent
 
-**Files:** `scripts/combat_component.gd`, `scripts/combat_rules.gd`, class `.tres` files, new `scripts/projectile.gd`, new `scenes/projectile.tscn`, `scenes/player.tscn` only if a projectile spawn marker is needed.
+AttackData
+  phase durations / hit shape / damage / knockback / visual profile
 
-- Archer:
-  - tap/hold Z while moving: fast low-damage arrow;
-  - release charged Z: slow precise arrow with longer reach;
-  - X: piercing arrow;
-  - Shift while charging: cancel and backstep.
-- Mage:
-  - tap/hold Z: moving arcane bolt;
-  - release charged Z: larger slow orb with area impact;
-  - hold X: charge a large ground spell, release X to cast at the current facing position;
-  - keep Shift as reposition/evade.
-- Projectile owns movement, lifetime, collision query, damage payload, and visual color.
-- Combat component only selects and spawns a projectile from the resolved action result.
-- Use action data fields rather than class-name conditionals for projectile speed, size, damage, area, and piercing.
-- Knight melee remains direct hit detection.
+CombatQuery
+  one shared physics-space query for an AttackData against collision bodies
 
-### 3. Procedural enemy and boss animation
+ProceduralRig2D + actor _draw()
+  geometric silhouette / deformation / telegraph / trail / impact presentation
+```
 
-**Files:** `scripts/procedural_rig_2d.gd`, `scripts/enemy.gd`, `scenes/boss.tscn`, new tests for enemy telegraph state if needed.
+The first slice deliberately does not add a generic ECS, networking, inventory, faction simulation, NPC memory, or a boss framework. Those become later consumers of the same actor, attack, and event boundaries.
 
-- Keep one rig with profile-driven scale, colors, limb count, and pose.
-- Animate connected parts with shared walk phase and attack phase; avoid independent random motion.
-- Add enemy states for approach, telegraph, active attack, recovery, hit, and death.
-- Normal enemy gets a readable melee telegraph and short lunge.
-- Boss gets large but simple patterns: sweeping attack, ground wave, and charge.
-- Boss attacks must show a clear windup pose/color/scale before the damaging frame.
-- Boss movement remains low pushback but receives posture and visual feedback.
+## Dependency-ordered implementation
 
-### 4. Verification
+### Phase 1 — data and test seams
 
-- Add focused assertions for camera target/limits, projectile direction and lifetime, Archer/Mage action selection, and boss telegraph timing.
-- Run all existing `tests/*_test.gd` scripts.
-- Run Godot editor parse and a headless game startup.
-- Manually verify: long traversal, camera feel, torch visibility, Archer/Mage distinction, boss telegraph readability, and no regressions to Knight guard/charge.
+- Add `scripts/attack_data.gd` as a typed `Resource` with startup, active, recovery, reach, thickness, damage, knockback, and visual kind.
+- Add `scripts/combat_query.gd` with one shared rectangle/capsule physics query that excludes the attacker and returns unique hit bodies.
+- Add focused tests for phase timing, attack context selection, and spatial hit filtering.
 
-## Deliberate simplifications
+### Phase 2 — movement and action buffering
 
-- Map is hand-authored with repeated geometry, not procedural generation.
-- Torches are draw-based, not individual particle systems.
-- Projectiles use simple distance/collision queries, not a full projectile physics framework.
-- Boss has three patterns, not a data-authored attack graph; add one only after the prototype is fun.
+- Extend `duel_player.gd` with coyote time, jump buffering, attack buffering, and a movement multiplier by action phase.
+- Preserve the current public methods used by tests and controller.
+- Keep the custom geometric jump representation until a real floor collision scene is introduced.
+
+### Phase 3 — spatial player/enemy combat
+
+- Give player slash and enemy intent attacks `AttackData` profiles.
+- Replace controller-side attack reach checks with `CombatQuery` calls during active frames.
+- Keep `DuelRules.enemy_intent()` as the first AI decision layer; add no perfect-reactivity logic.
+- Use `DuelRules.resolve()` only for legacy test compatibility where necessary, then remove callers once spatial behavior is verified.
+
+### Phase 4 — procedural feedback
+
+- Drive actor telegraphs and attack lines from `AttackData.visual_kind` and normalized action progress.
+- Add reusable hit stop and camera impulse state to the encounter controller.
+- Scale feedback by attack strength so normal attacks remain restrained.
+- Keep all visuals draw-based and asset-free.
+
+### Phase 5 — verification and graph review
+
+- Run every existing `tests/*_test.gd` plus the new focused tests.
+- Run Godot editor parse and headless main-scene startup.
+- Rebuild `.code-review-graph` and inspect affected flows, architecture overview, and changed-file risk.
+- Commit the milestone only after the full suite is green.
+
+## Later milestones
+
+1. Extract a shared `CombatActor` only after player and enemy have two proven shared consumers.
+2. Add composable `AttackPattern` resources: motion, strike, timing, follow-up, visual profile.
+3. Add utility-based enemy selection using distance, velocity, action state, health, recent actions, and personality.
+4. Add `CombatProfile` for recent/long-term player tendencies.
+5. Add `GameEvents`, `WorldHistory`, faction knowledge, NPC memory, and region reactions.
+6. Add bosses by composing existing attacks and environment feedback, not by creating a parallel combat engine.
+
+## Verification contract
+
+The milestone is complete only when:
+
+- no new Godot parse/resource errors appear;
+- all existing tests pass;
+- new tests prove the attack phase model, buffered input, and actual spatial hit filtering;
+- the main scene still launches with A/D, Space, J, K, and L;
+- the graph has no unresolved changed-file warnings that affect the active flow.

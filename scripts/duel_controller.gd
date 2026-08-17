@@ -1,6 +1,8 @@
 extends Node2D
 
 const DuelRules = preload("res://scripts/duel_rules.gd")
+const CombatQuery = preload("res://scripts/combat_query.gd")
+const AttackData = preload("res://scripts/attack_data.gd")
 
 @onready var player = $Player
 @onready var enemy = $Enemy
@@ -20,6 +22,7 @@ var parry_armed := false
 var commit_shown := false
 var player_attack_resolved := false
 var enemy_attack_contact := false
+var enemy_attack_resolved := false
 var ambient_time := 0.0
 
 const COMMIT_LEAD := 0.12
@@ -50,10 +53,9 @@ func _process(delta: float) -> void:
 		return
 	timer -= delta
 	enemy.advance_motion(player.global_position.x, delta)
-	if phase == "telegraph" and enemy.state == "commit":
-		var contact_distance := absf(enemy.global_position.x - player.global_position.x)
-		if contact_distance <= DuelRules.enemy_reach(enemy.intent) and player.can_be_hit(enemy.intent):
-			enemy_attack_contact = true
+	if phase == "telegraph" and enemy.state == "commit" and not enemy_attack_resolved:
+		if enemy.get_attack_data().phase_at(enemy.motion_time) == "active":
+			_resolve_enemy_attack_spatial()
 	if phase == "telegraph":
 		if player.action_can_hit() and not player_attack_resolved:
 			player_attack_resolved = true
@@ -69,10 +71,10 @@ func _process(delta: float) -> void:
 			message = "%s!" % enemy.intent.to_upper()
 			commit_shown = true
 	if phase == "recover" and player.action_can_hit():
-		var distance := absf(enemy.global_position.x - player.global_position.x)
-		var direction: float = signf(enemy.global_position.x - player.global_position.x)
-		if DuelRules.is_weak_point(enemy.state) and DuelRules.attack_hits(distance, player.facing, direction):
-			enemy.take_hit()
+		var player_attack: AttackData = player.get_attack_data()
+		var hits := CombatQuery.find_hits(player, player_attack, player.facing)
+		if DuelRules.is_weak_point(enemy.state) and enemy in hits:
+			enemy.take_hit(player_attack.damage, player_attack.knockback)
 			enemy.set_state("stagger")
 			message = "WEAK POINT HIT"
 			_show_impact(enemy.global_position, 0.18)
@@ -96,6 +98,7 @@ func _begin_telegraph() -> void:
 	commit_shown = false
 	player_attack_resolved = false
 	enemy_attack_contact = false
+	enemy_attack_resolved = false
 	var distance := absf(enemy.global_position.x - player.global_position.x)
 	enemy.set_intent(DuelRules.enemy_intent(distance, player.action, exchange, parry_streak, step_streak, attack_streak))
 	timer = DuelRules.telegraph_time(enemy.intent)
@@ -104,6 +107,8 @@ func _begin_telegraph() -> void:
 
 
 func _resolve_response() -> void:
+	if not enemy_attack_resolved:
+		_resolve_enemy_attack_spatial()
 	var chosen_action: String = player.action
 	_record_action(chosen_action)
 	var result := DuelRules.resolve(chosen_action, enemy.intent)
@@ -124,9 +129,9 @@ func _resolve_response() -> void:
 		message = "OPENING — J STRIKE"
 		return
 	if result == "hit":
-		var distance := absf(enemy.global_position.x - player.global_position.x)
-		if player.can_be_hit(enemy.intent) and (enemy_attack_contact or distance <= DuelRules.enemy_reach(enemy.intent)):
-			player.take_hit()
+		if enemy_attack_contact and player.can_be_hit(enemy.intent):
+			var enemy_attack: AttackData = enemy.get_attack_data()
+			player.take_hit(enemy_attack.damage)
 			message = message if message in ["PARRY LATE", "TOO EARLY"] else "HIT — read the next tell"
 			_show_impact(player.global_position, 0.14)
 		else:
@@ -139,21 +144,24 @@ func _resolve_response() -> void:
 
 
 func _resolve_player_attack() -> void:
-	var distance := absf(enemy.global_position.x - player.global_position.x)
-	var direction: float = signf(enemy.global_position.x - player.global_position.x)
-	if DuelRules.attack_hits(distance, player.facing, direction):
-		enemy.take_hit()
+	var hits := CombatQuery.find_hits(player, player.get_attack_data(), player.facing)
+	if enemy in hits:
+		var attack: AttackData = player.get_attack_data()
+		enemy.take_hit(attack.damage, attack.knockback)
 		enemy.set_state("stagger")
 		message = "STRIKE"
 		_show_impact(enemy.global_position, 0.18)
-		if distance <= DuelRules.enemy_reach(enemy.intent) and player.can_be_hit(enemy.intent):
-			player.take_hit()
-			message = "TRADE — you both committed"
 	else:
 		message = "MISS — move into sword range"
-		enemy.set_state("recover")
+	enemy.set_state("recover")
 	phase = "recover"
 	timer = RECOVERY_GAP
+
+
+func _resolve_enemy_attack_spatial() -> void:
+	enemy_attack_resolved = true
+	var hits := CombatQuery.find_hits(enemy, enemy.get_attack_data(), enemy.get_facing())
+	enemy_attack_contact = player in hits
 
 
 func _record_action(chosen_action: String) -> void:
@@ -220,11 +228,13 @@ func _draw() -> void:
 	for x in range(0, 3200, 160):
 		draw_line(Vector2(x, 438.0), Vector2(x + 80.0, 438.0), Color("#4a5a73"), 2.0)
 	if player.action == "attack":
-		draw_line(player.position + Vector2(0.0, -14.0), player.position + Vector2(player.facing * 110.0, -14.0), Color("#ffd166"), 5.0)
+		var player_attack: AttackData = player.get_attack_data()
+		draw_line(player.position + Vector2(0.0, player_attack.vertical_offset), player.position + Vector2(player.facing * player_attack.reach, player_attack.vertical_offset), Color("#ffd166"), 5.0)
 	if phase == "telegraph":
 		var toward_player := signf(player.position.x - enemy.position.x)
 		var range_color := Color("#f0bd3f") if enemy.state == "telegraph" else Color("#f06b63")
-		draw_line(enemy.position + Vector2(0.0, -14.0), enemy.position + Vector2(toward_player * DuelRules.enemy_reach(enemy.intent), -14.0), range_color, 4.0)
+		var enemy_attack: AttackData = enemy.get_attack_data()
+		draw_line(enemy.position + Vector2(0.0, enemy_attack.vertical_offset), enemy.position + Vector2(toward_player * enemy_attack.reach, enemy_attack.vertical_offset), range_color, 4.0)
 	if impact_time > 0.0:
 		var strength := clampf(impact_time / 0.18, 0.0, 1.0)
 		draw_circle(impact_position, 34.0 + (1.0 - strength) * 34.0, Color(1.0, 0.82, 0.3, strength * 0.35))

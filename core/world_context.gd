@@ -61,8 +61,6 @@ func set_weather(next_weather: String, intensity: float) -> void:
 	events.record(next_weather)
 
 func _draw() -> void:
-	var tint := Color(0.08, 0.12, 0.18).lerp(Color(0.02, 0.03, 0.06), 1.0 - state.light_level)
-	draw_rect(Rect2(0, 0, 1080, 330), tint, true)
 	if debug_visible:
 		var text := "WORLD  %02d:%02d  light %.2f  %s  temp %.1fC" % [int(state.time_of_day), int(fmod(state.time_of_day * 60.0, 60.0)), state.light_level, state.weather, state.temperature]
 		text += "\nEVENTS  " + ", ".join(events.recent)

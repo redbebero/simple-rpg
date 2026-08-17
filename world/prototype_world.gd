@@ -100,12 +100,39 @@ func debug_decisions() -> String:
 
 func _draw() -> void:
 	var light := context.state.light_level if context != null else 1.0
-	draw_rect(Rect2(0, 205, 1080, 125), Color("#1d3b2a").lerp(Color("#101827"), 1.0 - light), true)
-	draw_rect(Rect2(80, 220, 170, 90), Color("#76533d"), true)
-	draw_rect(Rect2(270, 215, 270, 105), Color("#244b2e"), true)
-	draw_rect(Rect2(550, 215, 160, 105), Color("#235270"), true)
-	draw_rect(Rect2(710, 210, 250, 110), Color("#161225"), true)
-	draw_string(ThemeDB.fallback_font, Vector2(90, 238), "VILLAGE", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("#e3c38b"))
-	draw_string(ThemeDB.fallback_font, Vector2(300, 238), "FOREST", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("#a3d17b"))
-	draw_string(ThemeDB.fallback_font, Vector2(580, 238), "LAKE", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("#8ed5ef"))
-	draw_string(ThemeDB.fallback_font, Vector2(745, 238), "CAVE", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("#bba3e5"))
+	var fade := 1.0 - light
+	draw_rect(Rect2(0, 120, 3200, 310), Color("#20354a").lerp(Color("#0e1828"), fade), true)
+	# Four regions share one continuous ground line instead of floating cards.
+	draw_rect(Rect2(0, 285, 260, 145), Color("#76533d").lerp(Color("#2c2630"), fade), true)
+	draw_rect(Rect2(260, 270, 290, 160), Color("#244b2e").lerp(Color("#172529"), fade), true)
+	draw_rect(Rect2(550, 300, 170, 130), Color("#235270").lerp(Color("#17263a"), fade), true)
+	draw_rect(Rect2(720, 250, 360, 180), Color("#161225").lerp(Color("#0b0b16"), fade), true)
+	for x in range(285, 540, 42):
+		var tree_height := 38.0 + float(int(x / 7) % 3) * 12.0
+		draw_line(Vector2(x, 390), Vector2(x, 390 - tree_height), Color("#152b24"), 7.0)
+		draw_circle(Vector2(x, 380 - tree_height), 18.0, Color("#326b42"))
+	for x in range(570, 710, 28):
+		draw_line(Vector2(x, 330 + sin(float(x)) * 4.0), Vector2(x + 18, 330 + sin(float(x)) * 4.0), Color(0.45, 0.78, 0.9, 0.55), 2.0)
+	draw_arc(Vector2(895, 405), 170, PI, TAU, 32, Color("#2d2545"), 28.0)
+	draw_line(Vector2(0, 420), Vector2(1080, 420), Color("#536277"), 4.0)
+	draw_rect(Rect2(0, 424, 1080, 6), Color("#273447"), true)
+	# The combat lane is also world space: it now has ground, depth marks, and silhouettes.
+	draw_rect(Rect2(0, 430, 3200, 210), Color("#101827"), true)
+	draw_rect(Rect2(0, 525, 3200, 115), Color("#1a2737").lerp(Color("#0d1421"), fade), true)
+	draw_line(Vector2(0, 525), Vector2(3200, 525), Color("#536277"), 3.0)
+	for x in range(20, 3200, 120):
+		draw_line(Vector2(x, 535), Vector2(x + 60, 535), Color("#405067"), 2.0)
+		draw_line(Vector2(x + 30, 565), Vector2(x + 100, 565), Color("#293a50"), 2.0)
+	for offset: int in [1080, 2160]:
+		draw_rect(Rect2(offset, 285, 260, 145), Color("#76533d").lerp(Color("#2c2630"), fade), true)
+		draw_rect(Rect2(offset + 260, 270, 290, 160), Color("#244b2e").lerp(Color("#172529"), fade), true)
+		draw_rect(Rect2(offset + 550, 300, 170, 130), Color("#235270").lerp(Color("#17263a"), fade), true)
+		draw_rect(Rect2(offset + 720, 250, 360, 180), Color("#161225").lerp(Color("#0b0b16"), fade), true)
+		draw_string(ThemeDB.fallback_font, Vector2(offset + 24, 150), "VILLAGE", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color("#e3c38b"))
+		draw_string(ThemeDB.fallback_font, Vector2(offset + 285, 150), "FOREST", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color("#a3d17b"))
+		draw_string(ThemeDB.fallback_font, Vector2(offset + 575, 150), "LAKE", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color("#8ed5ef"))
+		draw_string(ThemeDB.fallback_font, Vector2(offset + 755, 150), "CAVE SHELTER", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color("#bba3e5"))
+	draw_string(ThemeDB.fallback_font, Vector2(24, 150), "VILLAGE", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color("#e3c38b"))
+	draw_string(ThemeDB.fallback_font, Vector2(285, 150), "FOREST", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color("#a3d17b"))
+	draw_string(ThemeDB.fallback_font, Vector2(575, 150), "LAKE", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color("#8ed5ef"))
+	draw_string(ThemeDB.fallback_font, Vector2(755, 150), "CAVE SHELTER", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color("#bba3e5"))

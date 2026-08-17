@@ -9,14 +9,14 @@
 [node name="SimpleRpg" type="Node2D" unique_id=668049591]
 script = ExtResource("1")
 
+[node name="WorldContext" type="Node2D" parent="."]
+script = ExtResource("5")
+
 [node name="Player" parent="." unique_id=433205963 instance=ExtResource("2")]
 position = Vector2(300, 430)
 
 [node name="Enemy" parent="." unique_id=276305351 instance=ExtResource("3")]
 position = Vector2(760, 430)
-
-[node name="WorldContext" type="Node2D" parent="."]
-script = ExtResource("5")
 
 [node name="Camera2D" type="Camera2D" parent="." unique_id=2017130320]
 position = Vector2(300, 430)

@@ -1,0 +1,2 @@
+class_name WorldNpc
+extends WorldCreature

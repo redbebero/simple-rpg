@@ -6,6 +6,7 @@ static func find_hits(attacker: CollisionObject2D, attack: AttackData, facing: f
 	var hits: Array[Node2D] = []
 	if attacker == null or attack == null or attacker.get_world_2d() == null:
 		return hits
+	attacker.force_update_transform()
 	var shape := RectangleShape2D.new()
 	shape.size = Vector2(attack.reach, attack.thickness)
 	var params := PhysicsShapeQueryParameters2D.new()

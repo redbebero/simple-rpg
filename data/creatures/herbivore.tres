@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="CreatureDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/creature_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "herbivore"
+movement_speed = 24.0
+aggression = 0.1
+fear = 0.9
+preferred_light = 0.7
+tags = ["ANIMAL", "ORGANIC", "HERBIVORE"]
+shelter_preference = 0.2

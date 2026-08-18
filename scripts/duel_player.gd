@@ -103,6 +103,8 @@ func _physics_process(delta: float) -> void:
 func queue_action(kind: String) -> bool:
 	if not ACTION_TIMES.has(kind):
 		return false
+	if action != "" and action_phase != "ready":
+		return begin_action(kind)
 	pending_action = kind
 	action_buffer_time = ACTION_BUFFER_WINDOW
 	return true

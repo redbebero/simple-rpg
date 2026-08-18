@@ -25,7 +25,9 @@ func _run() -> void:
 	var context: WorldContext = ContextScript.new()
 	root.add_child(context)
 	await process_frame
-	var prototype = context.get_node("PrototypeWorld")
+	assert(context.router.change_map("forest"))
+	await process_frame
+	var prototype = context.router.active_map()
 	context.state.set_time(0.0)
 	var shadow = prototype.creatures[3]
 	var shadow_start_x: float = shadow.position.x

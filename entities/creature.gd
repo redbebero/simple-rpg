@@ -41,7 +41,7 @@ func setup(world: WorldContext, kind: String, initial_tags: Array[String]) -> vo
 	var perception := PerceptionComponent.new()
 	perception.name = "PerceptionComponent"
 	add_child(perception)
-	world.get_node("PrototypeWorld").perception.register(self)
+	world.perception.register(self)
 
 func receive_sound(at: Vector2, intensity: float, kind: String) -> void:
 	if global_position.distance_to(at) <= 260.0 * intensity:
@@ -87,6 +87,7 @@ func tick(delta: float) -> void:
 
 func _draw() -> void:
 	var color: Color = {"herbivore": Color("#9cdb8a"), "predator": Color("#d87968"), "shadow": Color("#9c82d8"), "villager": Color("#d9bb75")}.get(creature_kind, Color.WHITE)
-	draw_circle(Vector2.ZERO, 12.0, color)
-	draw_line(Vector2(-10, 9), Vector2(-13, 22), color, 4)
-	draw_line(Vector2(10, 9), Vector2(13, 22), color, 4)
+	draw_rect(get_visual_shape(), color)
+
+func get_visual_shape() -> Rect2:
+	return Rect2(-12.0, -24.0, 24.0, 24.0)

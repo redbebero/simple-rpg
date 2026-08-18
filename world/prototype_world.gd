@@ -14,15 +14,12 @@ var rain_timer := 0.0
 
 func _ready() -> void:
 	perception = context.perception
-	_spawn_creature("herbivore", Vector2(270, 250), ["ANIMAL", "ORGANIC"])
-	_spawn_creature("herbivore", Vector2(340, 250), ["ANIMAL", "ORGANIC"])
-	_spawn_creature("predator", Vector2(500, 250), ["PREDATOR", "ANIMAL"])
-	_spawn_creature("shadow", Vector2(720, 245), ["SHADOW_SENSITIVE", "SHADOW", "ANIMAL"])
-	_spawn_creature("villager", Vector2(130, 250), ["NPC", "ORGANIC"])
-	_spawn_object(Vector2(410, 280), ["PLANT", "FLAMMABLE", "ORGANIC"])
-	_spawn_object(Vector2(450, 280), ["PLANT", "FLAMMABLE", "ORGANIC"])
-	_spawn_object(Vector2(620, 280), ["WATER", "SOLID"])
-	_spawn_object(Vector2(740, 275), ["CAVE", "DARK"])
+	_spawn_creature("herbivore", Vector2(270, 430), ["ANIMAL", "ORGANIC"])
+	_spawn_creature("herbivore", Vector2(340, 430), ["ANIMAL", "ORGANIC"])
+	_spawn_creature("predator", Vector2(500, 430), ["PREDATOR", "ANIMAL"])
+	_spawn_creature("shadow", Vector2(720, 430), ["SHADOW_SENSITIVE", "SHADOW", "ANIMAL"])
+	_spawn_object(Vector2(410, 430), ["PLANT", "FLAMMABLE", "ORGANIC"])
+	_spawn_object(Vector2(450, 430), ["PLANT", "FLAMMABLE", "ORGANIC"])
 	queue_redraw()
 
 func _process(delta: float) -> void:
@@ -40,12 +37,21 @@ func _process(delta: float) -> void:
 			fire.intensity = maxf(0.0, fire.intensity - delta * context.state.rain_intensity * 0.12)
 		if fire.intensity <= 0.0: context.events.fire_weakened.emit(fire.global_position, 1.0)
 	_apply_interactions()
+	_route_if_needed()
 	queue_redraw()
+
+func _route_if_needed() -> void:
+	var player := context.get_parent().get_node_or_null("Player")
+	if player == null: return
+	if player.position.x > 980.0:
+		context.router.change_map("boss_arena", Vector2(180.0, 430.0))
+	elif player.position.x < 40.0:
+		context.router.change_map("village", Vector2(900.0, 430.0))
 
 func try_create_fire() -> void:
 	if fire_cooldown > 0.0 or fire != null: return
 	fire_cooldown = 0.5
-	fire = _spawn_object(Vector2(390, 275), ["FIRE", "HEAT", "LIGHT"])
+	fire = _spawn_object(Vector2(390, 430), ["FIRE", "HEAT", "LIGHT"])
 	fire.intensity = 1.0
 	context.events.record("fire started")
 	context.events.fire_started.emit(fire.global_position)
@@ -101,38 +107,31 @@ func debug_decisions() -> String:
 func _draw() -> void:
 	var light := context.state.light_level if context != null else 1.0
 	var fade := 1.0 - light
-	draw_rect(Rect2(0, 120, 3200, 310), Color("#20354a").lerp(Color("#0e1828"), fade), true)
-	# Four regions share one continuous ground line instead of floating cards.
-	draw_rect(Rect2(0, 285, 260, 145), Color("#76533d").lerp(Color("#2c2630"), fade), true)
-	draw_rect(Rect2(260, 270, 290, 160), Color("#244b2e").lerp(Color("#172529"), fade), true)
-	draw_rect(Rect2(550, 300, 170, 130), Color("#235270").lerp(Color("#17263a"), fade), true)
-	draw_rect(Rect2(720, 250, 360, 180), Color("#161225").lerp(Color("#0b0b16"), fade), true)
-	for x in range(285, 540, 42):
-		var tree_height := 38.0 + float(int(x / 7) % 3) * 12.0
-		draw_line(Vector2(x, 390), Vector2(x, 390 - tree_height), Color("#152b24"), 7.0)
-		draw_circle(Vector2(x, 380 - tree_height), 18.0, Color("#326b42"))
-	for x in range(570, 710, 28):
-		draw_line(Vector2(x, 330 + sin(float(x)) * 4.0), Vector2(x + 18, 330 + sin(float(x)) * 4.0), Color(0.45, 0.78, 0.9, 0.55), 2.0)
-	draw_arc(Vector2(895, 405), 170, PI, TAU, 32, Color("#2d2545"), 28.0)
-	draw_line(Vector2(0, 420), Vector2(1080, 420), Color("#536277"), 4.0)
-	draw_rect(Rect2(0, 424, 1080, 6), Color("#273447"), true)
-	# The combat lane is also world space: it now has ground, depth marks, and silhouettes.
-	draw_rect(Rect2(0, 430, 3200, 210), Color("#101827"), true)
-	draw_rect(Rect2(0, 525, 3200, 115), Color("#1a2737").lerp(Color("#0d1421"), fade), true)
+	draw_rect(Rect2(-400, 0, 2200, 640), Color("#101c31").lerp(Color("#080d19"), fade), true)
+	draw_circle(Vector2(820, 92), 34.0, Color("#d9d1b1").lerp(Color("#8b86a0"), fade))
+	draw_colored_polygon(PackedVector2Array([Vector2(-400, 320), Vector2(80, 175), Vector2(370, 310), Vector2(700, 160), Vector2(1120, 310), Vector2(1800, 210), Vector2(1800, 430), Vector2(-400, 430)]), Color("#172d3a"))
+	draw_rect(Rect2(-400, 285, 2200, 145), Color("#1b3d31").lerp(Color("#142522"), fade), true)
+	# Two depth layers of square-canopy trees create a readable forest silhouette.
+	for x in range(20, 1100, 70):
+		var tree_height := 70.0 + float(int(x / 7) % 3) * 18.0
+		draw_rect(Rect2(x - 5, 390 - tree_height, 10, tree_height), Color("#10251f"), true)
+		draw_rect(Rect2(x - 32, 350 - tree_height, 64, 48), Color("#214d3a"), true)
+	for x in range(55, 1080, 115):
+		draw_rect(Rect2(x - 4, 390 - 52, 8, 52), Color("#19352b"), true)
+		draw_rect(Rect2(x - 24, 350 - 52, 48, 34), Color("#2f6944"), true)
+	# A quiet pond gives the forest a landmark without introducing sprite art.
+	draw_set_transform(Vector2(760, 365), 0.0, Vector2(1.0, 0.18))
+	draw_circle(Vector2.ZERO, 150.0, Color("#245a6a").lerp(Color("#18333e"), fade))
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	for x in range(650, 880, 45):
+		draw_line(Vector2(x, 365), Vector2(x + 24, 365), Color("#78c4c1"), 2.0)
+	draw_line(Vector2(-400, 420), Vector2(1800, 420), Color("#536277"), 4.0)
+	draw_rect(Rect2(-400, 424, 2200, 6), Color("#273447"), true)
+	draw_rect(Rect2(-400, 430, 2200, 210), Color("#101827"), true)
+	draw_rect(Rect2(-400, 525, 2200, 115), Color("#1a2737").lerp(Color("#0d1421"), fade), true)
 	draw_line(Vector2(0, 525), Vector2(3200, 525), Color("#536277"), 3.0)
-	for x in range(20, 3200, 120):
+	for x in range(20, 1080, 120):
 		draw_line(Vector2(x, 535), Vector2(x + 60, 535), Color("#405067"), 2.0)
 		draw_line(Vector2(x + 30, 565), Vector2(x + 100, 565), Color("#293a50"), 2.0)
-	for offset: int in [1080, 2160]:
-		draw_rect(Rect2(offset, 285, 260, 145), Color("#76533d").lerp(Color("#2c2630"), fade), true)
-		draw_rect(Rect2(offset + 260, 270, 290, 160), Color("#244b2e").lerp(Color("#172529"), fade), true)
-		draw_rect(Rect2(offset + 550, 300, 170, 130), Color("#235270").lerp(Color("#17263a"), fade), true)
-		draw_rect(Rect2(offset + 720, 250, 360, 180), Color("#161225").lerp(Color("#0b0b16"), fade), true)
-		draw_string(ThemeDB.fallback_font, Vector2(offset + 24, 150), "VILLAGE", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color("#e3c38b"))
-		draw_string(ThemeDB.fallback_font, Vector2(offset + 285, 150), "FOREST", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color("#a3d17b"))
-		draw_string(ThemeDB.fallback_font, Vector2(offset + 575, 150), "LAKE", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color("#8ed5ef"))
-		draw_string(ThemeDB.fallback_font, Vector2(offset + 755, 150), "CAVE SHELTER", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color("#bba3e5"))
-	draw_string(ThemeDB.fallback_font, Vector2(24, 150), "VILLAGE", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color("#e3c38b"))
-	draw_string(ThemeDB.fallback_font, Vector2(285, 150), "FOREST", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color("#a3d17b"))
-	draw_string(ThemeDB.fallback_font, Vector2(575, 150), "LAKE", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color("#8ed5ef"))
-	draw_string(ThemeDB.fallback_font, Vector2(755, 150), "CAVE SHELTER", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color("#bba3e5"))
+	draw_string(ThemeDB.fallback_font, Vector2(32, 150), "FOREST · WILDERNESS", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color("#a3d17b"))
+	draw_string(ThemeDB.fallback_font, Vector2(850, 400), "BOSS ARENA →", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color("#ffb08a"))

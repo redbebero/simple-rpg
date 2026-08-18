@@ -4,18 +4,21 @@
 [ext_resource type="PackedScene" path="res://scenes/player.tscn" id="2"]
 [ext_resource type="PackedScene" path="res://scenes/enemy.tscn" id="3"]
 [ext_resource type="Script" uid="uid://gn4f8bfqvsce" path="res://scripts/follow_camera.gd" id="4"]
-[ext_resource type="Script" path="res://core/world_context.gd" id="5"]
+[ext_resource type="Script" uid="uid://c35iqqri52rsh" path="res://core/world_context.gd" id="5"]
 
 [node name="SimpleRpg" type="Node2D" unique_id=668049591]
 script = ExtResource("1")
 
-[node name="WorldContext" type="Node2D" parent="."]
+[node name="WorldContext" type="Node2D" parent="." unique_id=114639606]
 script = ExtResource("5")
+
+[node name="MapRoot" type="Node2D" parent="." unique_id=1342073081]
 
 [node name="Player" parent="." unique_id=433205963 instance=ExtResource("2")]
 position = Vector2(300, 430)
 
 [node name="Enemy" parent="." unique_id=276305351 instance=ExtResource("3")]
+visible = false
 position = Vector2(760, 430)
 
 [node name="Camera2D" type="Camera2D" parent="." unique_id=2017130320]

@@ -4,7 +4,7 @@ extends Node2D
 const WorldStateScript = preload("res://core/world_state.gd")
 const WorldEventsScript = preload("res://core/world_events.gd")
 const ResolverScript = preload("res://interaction/interaction_resolver.gd")
-const PrototypeWorldScript = preload("res://world/prototype_world.gd")
+const SceneRouterScript = preload("res://scripts/scene_router.gd")
 const TimeSystemScript = preload("res://world/time_system.gd")
 const WeatherSystemScript = preload("res://world/weather_system.gd")
 const EcologySystemScript = preload("res://world/ecology_system.gd")
@@ -19,6 +19,7 @@ var weather_system: WeatherSystem
 var ecology: EcologySystem
 var simulation_lod: SimulationLOD
 var perception: PerceptionSystem
+var router: SceneRouter
 var fixed_tick := 0.25
 var tick_accumulator := 0.0
 var debug_visible := false
@@ -32,10 +33,16 @@ func _ready() -> void:
 	ecology = EcologySystemScript.new()
 	simulation_lod = SimulationLODScript.new()
 	perception = PerceptionSystemScript.new()
-	var prototype := PrototypeWorldScript.new()
-	prototype.context = self
-	prototype.name = "PrototypeWorld"
-	add_child(prototype)
+	router = SceneRouterScript.new()
+	router.name = "SceneRouter"
+	add_child(router)
+	var map_root := get_parent().get_node_or_null("MapRoot") as Node2D
+	if map_root == null:
+		map_root = Node2D.new()
+		map_root.name = "MapRoot"
+		add_child(map_root)
+	router.setup(self, map_root)
+	router.change_map("village", Vector2(180.0, 430.0))
 
 func _process(delta: float) -> void:
 	tick_accumulator += delta
@@ -49,8 +56,8 @@ func _process(delta: float) -> void:
 			events.record("daybreak")
 			events.time_changed.emit(state.time_of_day, state.light_level)
 	if Input.is_action_just_pressed("world_fire"):
-		var world := get_node_or_null("PrototypeWorld")
-		if world != null:
+		var world := router.active_map()
+		if world != null and world.has_method("try_create_fire"):
 			world.try_create_fire()
 	if Input.is_action_just_pressed("debug_toggle"):
 		debug_visible = not debug_visible
@@ -64,6 +71,6 @@ func _draw() -> void:
 	if debug_visible:
 		var text := "WORLD  %02d:%02d  light %.2f  %s  temp %.1fC" % [int(state.time_of_day), int(fmod(state.time_of_day * 60.0, 60.0)), state.light_level, state.weather, state.temperature]
 		text += "\nEVENTS  " + ", ".join(events.recent)
-		var world := get_node_or_null("PrototypeWorld")
-		if world != null: text += "\nDECISIONS " + world.debug_decisions()
+		var world := router.active_map()
+		if world != null and world.has_method("debug_decisions"): text += "\nDECISIONS " + world.debug_decisions()
 		draw_string(ThemeDB.fallback_font, Vector2(24, 24), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("#d7e7ff"))
